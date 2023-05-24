@@ -1,0 +1,7 @@
+192.168.64.2 - - [12/May/2023:10:51:41 +0100] "GET / HTTP/1.1" 302 382 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+192.168.64.2 - - [12/May/2023:10:51:41 +0100] "GET /robots.txt HTTP/1.1" 200 37 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+192.168.64.2 - - [12/May/2023:10:52:47 +0100] "GET / HTTP/1.1" 302 382 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+192.168.64.2 - - [12/May/2023:10:55:30 +0100] "GET / HTTP/1.1" 302 382 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+192.168.64.10 - - [12/May/2023:11:27:33 +0100] "GET / HTTP/1.1" 302 382 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+192.168.64.10 - - [12/May/2023:11:27:33 +0100] "GET /robots.txt HTTP/1.1" 200 37 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+192.168.64.9 - - [12/May/2023:11:46:47 +0100] "GET / HTTP/1.1" 302 382 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"

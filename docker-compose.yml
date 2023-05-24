@@ -1,0 +1,187 @@
+version: '3'
+
+#___VOLUMES___
+volumes:
+  nextcloud:
+  db:
+  wp_data:
+  git_data:
+
+#___NETWORKS___
+networks:
+  openldap:
+    name: openldap
+
+services:
+#___SWAG___
+  swag:
+    image: lscr.io/linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - URL=${SWAG_DOMAIN}
+      - DUCKDNSTOKEN=${SWAG_TOKEN}
+      - SUBDOMAINS=wildcard
+      - VALIDATION=duckdns
+    volumes:
+      - ./configs/swag:/config
+    ports:
+      - 443:443
+      - 80:80
+    restart: unless-stopped
+
+#___HEIMDALL___
+  heimdall:
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./configs/heimdall:/config
+    restart: unless-stopped
+
+#___MARIADB___
+  db:
+    image: mariadb:10
+    restart: always
+    privileged: true
+    environment:
+      - MARIADB_ROOT_PASSWORD=root
+      - MARIADB_PASSWORD=${DB_PASSWD}
+      - MARIADB_DATABASE=database
+      - MARIADB_USER=${DB_USR}
+    volumes:
+      - db:/var/lib/mysql
+
+#___PHPMYADMIN___
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - PMA_ARBITRARY=1
+
+#___NEXTCCLOUD___
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    links:
+      - db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - MARIADB_ROOT_PASSWORD=root
+      - MARIADB_PASSWORD=${DB_PASSWD}
+      - MARIADB_DATABASE=database
+      - MARIADB_USER=${DB_USR}
+    volumes:
+      - ./configs/nextcloud:/config
+      - ./data/nextcloud:/data
+    restart: unless-stopped
+
+#___PLIK___
+  plik:
+    image: rootgg/plik:latest
+    container_name: plik
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    restart: "unless-stopped"
+
+#___WORDPRESS___
+  wordpress:
+    image: wordpress:latest
+    volumes:
+      - wp_data:/var/www/html
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_USER=${DB_USR}
+      - WORDPRESS_DB_PASSWORD=${DB_PASSWD}
+      - WORDPRESS_DB_NAME=database
+
+#___GITEA___
+  gitea:
+    image: gitea/gitea
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - DB_HOST=db
+      - DB_NAME=database
+      - DB_USER=${DB_USR}
+      - DB_PASSWD=${DB_PASSWD}
+    restart: always
+    volumes:
+      - git_data:/data
+
+#___BOOKSTACK___
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: bookstack
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - DB_HOST=db
+      - DB_USER=${DB_USR}
+      - DB_PASS=${DB_PASSWD}
+      - DB_DATABASE=database
+    volumes:
+      - ./configs/bookstack:/config
+    restart: unless-stopped
+
+#___LDAP___
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: openldap
+    volumes:
+      - ./storage/ldap_db:/var/lib/ldap
+      - ./storage/ldap_config:/etc/ldap/slapd.d
+    environment:
+      - LDAP_ORGANISATION=ynov-docker-org
+      - LDAP_DOMAIN=ynov-docker.org
+      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_CONFIG_PASSWORD=config
+      - LDAP_RFC2307BIS_SCHEMA=true
+      - LDAP_REMOVE_CONFIG_AFTER_SETUP=true
+      - LDAP_TLS_VERIFY_CLIENT=never
+
+#___LDAPUI___
+  openldapui:
+    image: wheelybird/ldap-user-manager:v1.5
+    container_name: openldap-ui
+    environment:
+      - LDAP_URI=ldap://openldap
+      - LDAP_BASE_DN=dc=ynov-docker,dc=org
+      - LDAP_REQUIRE_STARTTLS=FALSE
+      - LDAP_ADMINS_GROUP=admins
+      - LDAP_ADMIN_BIND_DN=cn=admin,dc=ynov-docker,dc=org
+      - LDAP_ADMIN_BIND_PWD=admin
+      - LDAP_IGNORE_CERT_ERRORS=true
+      - NO_HTTPS=TRUE
+      - PASSWORD_HASH=SSHA
+      - SERVER_HOSTNAME=openldapui.ynovportal.duckdns.org
+    depends_on:
+      - openldap
+
+#___SPACEDECK___
+  spacedeck:
+    build: .
+    container_name: spacedeck
+    volumes:
+      - ./storage:/app/storage
+      - ./database:/app/database
+      - ./config/default.json:/app/config/default.json
