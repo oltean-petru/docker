@@ -1,1 +1,0 @@
-2023/05/12 10:47:47 [error] 236#236: *45 upstream timed out (110: Operation timed out) while reading response header from upstream, client: 192.168.64.2, server: _, request: "POST /index.php HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "nextcloud.ynovportal.duckdns.org"
