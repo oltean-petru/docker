@@ -1,0 +1,12 @@
+FROM python:latest
+
+WORKDIR /app
+
+EXPOSE 8080
+
+COPY app.py /app/superduperproject/app.py
+
+VOLUME /app/superduperproject/
+
+
+CMD [ "python", "/app/superduperproject/app.py" ]

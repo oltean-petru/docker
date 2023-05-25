@@ -1,0 +1,179 @@
+version: '3'
+
+services:
+
+#___DATABASE___
+  db:
+    image: mariadb
+    command: --max-allowed-packet=64MB
+    restart: always
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MARIADB_ROOT_PASSWORD=${DB_USR}
+      - MARIADB_PASSWORD=${DB_PASSWD}
+      - MARIADB_DATABASE=database
+      - MARIADB_USER=${DB_USR}
+
+      #___HEIMDALL___
+  heimdall:
+    image: lscr.io/linuxserver/heimdall
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./configs/heimdall:/config
+    restart: unless-stopped
+
+#___SWAG___
+  swag:
+    image: lscr.io/linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - URL=${SWAG_DOMAIN}
+      - SUBDOMAINS=wildcard
+      - VALIDATION=duckdns
+      - DUCKDNSTOKEN=${SWAG_TOKEN}
+      - STAGING=true
+    volumes:
+      - ./configs/swag:/config
+    ports:
+      - 443:443
+      - 80:80
+    restart: unless-stopped
+
+#___LDAP___
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: openldap
+    volumes:
+      - ./storage/ldap_db:/var/lib/ldap
+      - ./storage/ldap_config:/etc/ldap/slapd.d
+    environment:
+      - LDAP_ORGANISATION=example-org
+      - LDAP_DOMAIN=example.org
+      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_CONFIG_PASSWORD=config
+      - LDAP_RFC2307BIS_SCHEMA=true
+      - LDAP_REMOVE_CONFIG_AFTER_SETUP=true
+      - LDAP_TLS_VERIFY_CLIENT=never
+#___LDAPUI___
+  openldapui:
+    image: wheelybird/ldap-user-manager:v1.5
+    container_name: openldap-ui
+    environment:
+      - LDAP_URI=ldap://openldap
+      - LDAP_BASE_DN=dc=example,dc=org
+      - LDAP_REQUIRE_STARTTLS=FALSE
+      - LDAP_ADMINS_GROUP=admins
+      - LDAP_ADMIN_BIND_DN=cn=admin,dc=example,dc=org
+      - LDAP_ADMIN_BIND_PWD=admin
+      - LDAP_IGNORE_CERT_ERRORS=true
+      - NO_HTTPS=TRUE
+      - PASSWORD_HASH=SSHA
+      - SERVER_HOSTNAME=localhost:18080
+    depends_on:
+      - openldap
+
+#___DHCP___
+  isc-dhcp:
+    image: "networkboot/dhcpd"
+    network_mode: host
+    volumes:
+      - ./data/dhcp:/data/
+
+#___WIREGUARD___
+  wireguard:
+    image: linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      # - SERVERURL=${VPN_SERVER_URL} #optional
+      - SERVERPORT=51820 #optional
+      # - PEERS=1 #optional
+      # - PEERDNS=auto #optional
+      # - INTERNAL_SUBNET=10.0.2.15 #optional
+      # - INTERNAL_SUBNET=10.13.13.0 #optional
+      # - ALLOWEDIPS=0.0.0.0/0 #optional
+    volumes:
+      - ./configs/wireguard:/config
+      - /usr/src:/usr/src # location of kernel headers
+      - /lib/modules:/lib/modules
+    # ports:
+      # - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+#___PORTAINER___
+  portainer:
+    image: portainer/portainer-ce:alpine
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./data/portainer_data:/data"
+    restart: always
+
+#___MATOMO___
+  matomo:
+    image: matomo
+    restart: always
+    volumes:
+      - matomo:/var/www/html
+    environment:
+      - MATOMO_DATABASE_HOST=db
+      - MATOMO_DATABASE_USERNAME=${DB_USR}
+      - MATOMO_DATABASE_PASSWORD=${DB_PASSWD}
+      - MATOMO_DATABASE_DBNAME=database
+
+#___WIRESHARK___
+  wireshark:
+    image: lscr.io/linuxserver/wireshark:latest
+    container_name: wireshark
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./configs/wireshark:/config
+    restart: unless-stopped
+
+#___ZAP___
+  zap:
+    image: owasp/zap2docker-stable
+    container_name: zap
+    command: [
+      "zap.sh",
+      "-daemon",
+      "-host", "0.0.0.0", "-port", "80",
+      "-config", "api.disablekey=true",
+      "-config", "api.addrs.addr.name=.*",
+      "-config", "api.addrs.addr.regex=true"
+    ]
+
+
+  project:
+    build: ./project
+
+volumes:
+  db:
+  matomo:
